@@ -6,7 +6,6 @@
     <author>JoomGallery::ProjectTeam</author>
     <authorEmail>team@joomgalleryfriends.net</authorEmail>
     <authorUrl>https://www.joomgalleryfriends.net/</authorUrl>
-catitem = $catView->getModel()->item;
     <creationDate>2024-4-27</creationDate>
     <copyright>(C) 2024 JoomGallery::ProjectTeam</copyright>
     <license>GNU General Public License version 3 or later</license>

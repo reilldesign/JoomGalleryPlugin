@@ -12,7 +12,6 @@ use My\Plugin\Content\Joomgallery\Extension\JoomGalleryPlugin;
     {
         public function register(Container $container)
         {
-				error_log('JoomGallery Plugin: register');
             $container->set(
                 PluginInterface::class,
                 function (Container $container) {
