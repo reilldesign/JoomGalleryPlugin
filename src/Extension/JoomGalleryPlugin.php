@@ -4,7 +4,6 @@ namespace My\Plugin\Content\Joomgallery\Extension;
 // no direct access
 defined('_JEXEC') or die;
 
-use Joomla\CMS\Plugin\CMSPlugin;
 use Joomla\Event\Event;
 use Joomla\Event\SubscriberInterface;
 use Joomla\CMS\Factory;
@@ -12,6 +11,7 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Event\Result\ResultAwareInterface;
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Layout\LayoutHelper;
+use Joomla\CMS\Plugin\CMSPlugin;
 use Joomla\Registry\Registry;
 
 use Joomgallery\Component\Joomgallery\Administrator\Helper\JoomHelper;
@@ -25,15 +25,29 @@ class JoomGalleryPlugin extends CMSPlugin implements SubscriberInterface
                 ];
     }
 
-	function renderLinks(&$text)
+	function renderLinks(&$text, $accept_legacy_tags)
 	{
 		$regex_link = '/href="joomgallery:([0-9]+)([a-z,A-Z,0-9,%,=,|, ]*)"/';
+		if ($accept_legacy_tags) {
+			$regex_link = '/href="joomgallery:([0-9]+)([a-z,A-Z,0-9,%,=,|, ]*)"|href="joomplulink:([0-9]+)([a-z,A-Z,0-9,%,=,|, ]*)"/';
+		}
     	if(preg_match_all($regex_link, $text, $matches, PREG_SET_ORDER))
     	{
 			foreach($matches as $match)
 			{
-            $output = 'href="'.JoomHelper::getViewRoute('image',$match[1]).'"';
-        		$text = str_replace($match[0], $output, $text);
+				$type = 'image';
+				$options = explode('|', $match[2]);
+            foreach ($options as $option) {
+               $opt = explode('=',$option);
+               if ($opt[0]=='type') {
+						$type = $opt[1];
+						if ($type == 'img') $type = 'image';
+						if ($type == 'thumb') $type = 'thumbnail';
+					}
+					if ($opt[0]=='view' && $opt[1]=='category') $type = 'category';
+				}
+				$output = 'href="'.JoomHelper::getViewRoute($type,$match[1]).'"';
+				$text = str_replace($match[0], $output, $text);
 			}
 		}
 		$regex_catlink = '/href="joomgallerycat:([0-9]+)"/';
@@ -47,7 +61,7 @@ class JoomGalleryPlugin extends CMSPlugin implements SubscriberInterface
 		}
 	}
 
-	function renderTitles(&$text)
+	function renderTitles(&$text, $accept_legacy_tags)
 	{
 		$regex_alt  = '/alt="joomgallery:([0-9]+)"/';
 
@@ -69,9 +83,13 @@ class JoomGalleryPlugin extends CMSPlugin implements SubscriberInterface
 		}
 	}
 
-	public function renderImages(&$text)
+	public function renderImages(&$text, $accept_legacy_tags)
 	{
-		$regex_tag  = '/{joomgallery:([0-9]+)(.*)}/';
+		$regex_tag  = '/{joomgallery:([0-9]+)([a-z,A-Z,0-9,%,=,|, ]*)}/';
+
+		if ($accept_legacy_tags) {
+			$regex_tag = '/{joomgallery:([0-9]+)([a-z,A-Z,0-9,%,=,|, ]*)}|{joomplu:([0-9]+)([a-z,A-Z,0-9,%,=,|, ]*)}/';
+		}
 
 		if(preg_match_all($regex_tag, $text, $matches, PREG_SET_ORDER))
 		{
@@ -81,21 +99,31 @@ class JoomGalleryPlugin extends CMSPlugin implements SubscriberInterface
 			foreach($matches as $match)
 			{
 				$type = 'detail';
-				if (strpos($match[2], 'original')) $type = 'original';
-				if (strpos($match[2], 'thumbnail')) $type = 'thumbnail';
+				$catlink = false;
+				$options = explode('|', $match[2]);
+            foreach ($options as $option) {
+					$opt = explode('=',$option);
+               if ($opt[0]=='type') {
+						$type = $opt[1];
+						if ($type == 'img') $type = 'image';
+						if ($type == 'orig') $type = 'original';
+						if ($type == 'thumb') $type = 'thumbnail';
+					}
+               if ($opt[0]=='catlink' && $opt[1]) $catlink=true;
+				}
         
 				$imageurl = JoomHelper::getImg($match[1],$type);
 
 				if(!is_null($imageurl))
 				{
 					// Linked
-	            if(strpos($match[2], 'nolink') === false)
+	            if(strpos($match[2], 'nolink'))
    	         {
-      	          $linked = true;
+						$linked = false;
          	   }
             	else
 					{
-						$linked = false;
+						$linked = true;
 					}
 
 					$align = 'text-center center';
@@ -103,10 +131,13 @@ class JoomGalleryPlugin extends CMSPlugin implements SubscriberInterface
 					if(strpos($match[2], 'left')) $align = 'left';
             
 					$image = JoomHelper::getRecord('image',$match[1]);
+					// TODO: add catlink if requested
 					$output = "<figure class=\"figure joom-image $align\">.\n";
+					if ($linked) $output .= '<a href="'.$imageurl.'">';
 					$output .= '<img src="'.$imageurl.'" class="figure-img img-fluid rounded" alt="'.$image->title.'">'."\n";
+					if ($linked) $output .= '</a>';
 					if (strpos($match[2], 'caption')) $output .= '<figcaption class="figure-caption '.$caption_align.'">'."{$image->title}</figcaption>\n";
-$output .= "</figure>\n";
+					$output .= "</figure>\n";
 				}
 				else
 				{
@@ -118,9 +149,13 @@ $output .= "</figure>\n";
 		}
 	}
 
-	public function renderCat(&$text)
+	public function renderCat(&$text, $accept_legacy_tags)
 	{
 		$regex_cat  = '/{joomgallerycat:([0-9]+)([a-z,0-9,=,",|, ]*)}/';
+
+		if ($accept_legacy_tags) {
+			$regex_cat  = '/{joomgallerycat:([0-9]+)([a-z,0-9,=,",|, ]*)}|{joomplucat:([0-9]+)([a-z,0-9,=,",|, ]*)}/';
+		}
 
 		if(preg_match_all($regex_cat, $text, $matches, PREG_SET_ORDER))
 		{
@@ -150,11 +185,13 @@ $output .= "</figure>\n";
 				$show_tags        = $params['configs']->get('jg_category_view_show_tags', 0, 'INT');
 
 				$options = explode('|', $match[2]);
+				$max_entries = 0;
 				foreach ($options as $option) {
 					$opt = explode('=',$option);
 					if ($opt[0]=='columns') $num_columns=$opt[1];
 					if ($opt[0]=='limit') $max_entries=$opt[1];
 				}
+				if ($max_entries) $catView->getModel()->setState('list.limit',$max_entries);
 				$catView->getModel()->getItem($match[1]);
 
 				if (!is_null($catitem = $catView->getModel()->item))
@@ -242,7 +279,7 @@ $layout = new FileLayout('category.thumbs', null, array('component' => 'com_joom
             // (we can't do a foreach over the config params as a Registry because they're protected)
 
 		// Simple performance check to determine whether bot should process further
-		if (strpos($article->text, 'joomgallery') === false)
+		if (strpos($article->text, 'joomgallery') === false && strpos($article->text, 'joomplu') === false)
 		{
 			return;
 		}
@@ -262,10 +299,12 @@ $layout = new FileLayout('category.thumbs', null, array('component' => 'com_joom
 		$this->wa->useStyle('com_joomgallery.site');
 		$this->wa->useStyle('com_joomgallery.jg-icon-font');
 
-		$this->renderImages($article->text);
-		$this->renderCat($article->text);
-		$this->renderTitles($article->text);
-		$this->renderLinks($article->text);
+		$legacy_tags = 0;
+		if ($this->params->get('accept_legacy_tags')) $legacy_tags = 1;
+		$this->renderImages($article->text, $legacy_tags);
+		$this->renderCat($article->text, $legacy_tags);
+		$this->renderTitles($article->text, $legacy_tags);
+		$this->renderLinks($article->text, $legacy_tags);
 	}
 }
 ?>

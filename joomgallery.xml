@@ -18,5 +18,21 @@
         <language tag="en-GB">language/en-GB/plg_content_joomgallery.ini</language>
         <language tag="en-GB">language/en-GB/plg_content_joomgallery.sys.ini</language>
     </languages>
+    <config>
+      <fields name="params">
+         <fieldset name="basic">
+            <field name="accept_legacy_tags"
+               type="radio"
+               class="btn-group btn-group-yesno"
+               default="0"
+               description="PLG_JGALLERY_ACCEPT_LEG_TAGS"
+               label="PLG_JGALLERY_ACCEPT_LEG_TAGS_LABEL"
+            >
+               <option value="0">JNO</option>
+               <option value="1">JYES</option>
+            </field>
+          </fieldset>
+       </fields>
+    </config>
 </extension>
 
