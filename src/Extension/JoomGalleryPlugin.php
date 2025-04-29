@@ -88,7 +88,7 @@ class JoomGalleryPlugin extends CMSPlugin implements SubscriberInterface
 		$regex_tag  = '/{joomgallery:([0-9]+)([a-z,A-Z,0-9,%,=,|, ]*)}/';
 
 		if ($accept_legacy_tags) {
-			$regex_tag = '/{joomgallery:([0-9]+)([a-z,A-Z,0-9,%,=,|, ]*)}|{joomplu:([0-9]+)([a-z,A-Z,0-9,%,=,|, ]*)}/';
+			$regex_tag = '/{(?:joomgallery|joomplu):([0-9]+)([a-z,A-Z,0-9,%,=,|, ]*)}/';
 		}
 
 		if(preg_match_all($regex_tag, $text, $matches, PREG_SET_ORDER))
@@ -101,9 +101,9 @@ class JoomGalleryPlugin extends CMSPlugin implements SubscriberInterface
 				$type = 'detail';
 				$catlink = false;
 				$options = explode('|', $match[2]);
-            foreach ($options as $option) {
+				foreach ($options as $option) {
 					$opt = explode('=',$option);
-               if ($opt[0]=='type') {
+					if ($opt[0]=='type') {
 						$type = $opt[1];
 						if ($type == 'img') $type = 'image';
 						if ($type == 'orig') $type = 'original';
@@ -112,7 +112,11 @@ class JoomGalleryPlugin extends CMSPlugin implements SubscriberInterface
                if ($opt[0]=='catlink' && $opt[1]) $catlink=true;
 				}
         
-				$imageurl = JoomHelper::getImg($match[1],$type);
+				try {
+					$imageurl = JoomHelper::getImg($match[1],$type);
+				} catch (Exeption $e) {
+					Factory::getApplication()->enqueueMessage($e->getMessage(),'error');
+				}
 
 				if(!is_null($imageurl))
 				{
