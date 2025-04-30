@@ -36,7 +36,7 @@ class JoomGalleryPlugin extends CMSPlugin implements SubscriberInterface
 			foreach($matches as $match)
 			{
 				$type = 'image';
-				$options = explode('|', $match[2]);
+				$options = explode('|', trim($match[2]));
             foreach ($options as $option) {
                $opt = explode('=',$option);
                if ($opt[0]=='type') {
@@ -100,7 +100,7 @@ class JoomGalleryPlugin extends CMSPlugin implements SubscriberInterface
 			{
 				$type = 'detail';
 				$catlink = false;
-				$options = explode('|', $match[2]);
+				$options = explode('|', trim($match[2]));
 				foreach ($options as $option) {
 					$opt = explode('=',$option);
 					if ($opt[0]=='type') {
@@ -188,7 +188,7 @@ class JoomGalleryPlugin extends CMSPlugin implements SubscriberInterface
 				$show_imgauthor   = $params['configs']->get('jg_category_view_show_imgauthor', 0, 'INT');
 				$show_tags        = $params['configs']->get('jg_category_view_show_tags', 0, 'INT');
 
-				$options = explode('|', $match[2]);
+				$options = explode('|', trim($match[2]));
 				$max_entries = 0;
 				foreach ($options as $option) {
 					$opt = explode('=',$option);
