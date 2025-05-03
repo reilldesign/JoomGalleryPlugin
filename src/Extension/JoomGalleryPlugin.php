@@ -29,7 +29,7 @@ class JoomGalleryPlugin extends CMSPlugin implements SubscriberInterface
 	{
 		$regex_link = '/href="joomgallery:([0-9]+)([a-z,A-Z,0-9,%,=,|, ]*)"/';
 		if ($accept_legacy_tags) {
-			$regex_link = '/href="joomgallery:([0-9]+)([a-z,A-Z,0-9,%,=,|, ]*)"|href="joomplulink:([0-9]+)([a-z,A-Z,0-9,%,=,|, ]*)"/';
+			$regex_link = '/href="(?:joomgallery|joomplulink):([0-9]+)([a-z,A-Z,0-9,%,=,|, ]*)"/';
 		}
     	if(preg_match_all($regex_link, $text, $matches, PREG_SET_ORDER))
     	{
@@ -100,44 +100,44 @@ class JoomGalleryPlugin extends CMSPlugin implements SubscriberInterface
 			{
 				$type = 'detail';
 				$catlink = false;
-				$options = explode('|', trim($match[2]));
-				foreach ($options as $option) {
-					$opt = explode('=',$option);
-					if ($opt[0]=='type') {
-						$type = $opt[1];
-						if ($type == 'img') $type = 'image';
-						if ($type == 'orig') $type = 'original';
-						if ($type == 'thumb') $type = 'thumbnail';
-					}
-               if ($opt[0]=='catlink' && $opt[1]) $catlink=true;
-				}
+				$linked = true;
         
 				try {
-					$imageurl = JoomHelper::getImg($match[1],$type);
+					$image = JoomHelper::getRecord('image',$match[1]);
 				} catch (Exeption $e) {
 					Factory::getApplication()->enqueueMessage($e->getMessage(),'error');
 				}
 
-				if(!is_null($imageurl))
+				if(!is_null($image))
 				{
-					// Linked
-	            if(strpos($match[2], 'nolink'))
-   	         {
-						$linked = false;
-         	   }
-            	else
+					$align = 'text-center';
+					if (strpos($match[2], 'nolink'))
 					{
-						$linked = true;
+						$linked = false;
 					}
-
-					$align = 'text-center center';
-					if(strpos($match[2], 'right')) $align = 'right';
-					if(strpos($match[2], 'left')) $align = 'left';
+					$options = explode('|', trim($match[2]));
+					foreach ($options as $option) {
+						$opt = explode('=',$option);
+						if ($opt[0]=='type') {
+							$type = $opt[1];
+							if ($type == 'img') $type = 'image';
+							if ($type == 'orig') $type = 'original';
+							if ($type == 'thumb') $type = 'thumbnail';
+						}
+						if ($opt[0]=='linked' && $opt[1]=='0') $linked=false;
+						if ($opt[0]=='catlink' && $opt[1]) $catlink=true;
+						if ($opt[0]=='align' && $opt[1]) {
+							if ($opt[1]=='center') $align='text-center';
+							if ($opt[1]=='left') $align='text-start';
+							if ($opt[1]=='right') $align='text-end';
+						}
+					}
             
-					$image = JoomHelper::getRecord('image',$match[1]);
+					$imageurl = JoomHelper::getImg($match[1],$type);
 					// TODO: add catlink if requested
 					$output = "<figure class=\"figure joom-image $align\">.\n";
-					if ($linked) $output .= '<a href="'.$imageurl.'">';
+					// Try this instead:  Route::_('index.php?option=com_joomgallery&view=image&id='.(int) $match[1])
+					if ($linked) $output .= '<a href="'.JoomHelper::getImg($match[1],'detail').'">';
 					$output .= '<img src="'.$imageurl.'" class="figure-img img-fluid rounded" alt="'.$image->title.'">'."\n";
 					if ($linked) $output .= '</a>';
 					if (strpos($match[2], 'caption')) $output .= '<figcaption class="figure-caption '.$caption_align.'">'."{$image->title}</figcaption>\n";
@@ -158,7 +158,7 @@ class JoomGalleryPlugin extends CMSPlugin implements SubscriberInterface
 		$regex_cat  = '/{joomgallerycat:([0-9]+)([a-z,0-9,=,",|, ]*)}/';
 
 		if ($accept_legacy_tags) {
-			$regex_cat  = '/{joomgallerycat:([0-9]+)([a-z,0-9,=,",|, ]*)}|{joomplucat:([0-9]+)([a-z,0-9,=,",|, ]*)}/';
+			$regex_cat  = '/{(?:joomgallerycat|joomplucat):([0-9]+)([a-z,0-9,=,",|, ]*)}/';
 		}
 
 		if(preg_match_all($regex_cat, $text, $matches, PREG_SET_ORDER))
@@ -195,7 +195,6 @@ class JoomGalleryPlugin extends CMSPlugin implements SubscriberInterface
 					if ($opt[0]=='columns') $num_columns=$opt[1];
 					if ($opt[0]=='limit') $max_entries=$opt[1];
 				}
-				if ($max_entries) $catView->getModel()->setState('list.limit',$max_entries);
 				$catView->getModel()->getItem($match[1]);
 
 				if (!is_null($catitem = $catView->getModel()->item))
@@ -236,6 +235,7 @@ class JoomGalleryPlugin extends CMSPlugin implements SubscriberInterface
 					$this->wa->useScript('com_joomgallery.joomgrid');
 
 					$catimages = $catView->getModel()->getImages();
+					if ($max_entries != 0) $catimages = array_slice($catimages, 0, $max_entries);
 					$children = $catView->getModel()->getChildren();
 					$imgsData = [ 'id' => (int) $catitem->id, 'layout' => $category_class, 'items' => $catimages, 'num_columns' => (int) $num_columns,
                   'caption_align' => $caption_align, 'image_class' => $image_class, 'image_type' => $lightbox_image, 'image_link' => $image_link,
