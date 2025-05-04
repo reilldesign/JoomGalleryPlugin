@@ -110,7 +110,8 @@ class JoomGalleryPlugin extends CMSPlugin implements SubscriberInterface
 
 				if(!is_null($image))
 				{
-					$align = 'text-center';
+					$figclass = 'joom-image text-center';
+					$floatfig = true;
 					if (strpos($match[2], 'nolink'))
 					{
 						$linked = false;
@@ -126,16 +127,22 @@ class JoomGalleryPlugin extends CMSPlugin implements SubscriberInterface
 						}
 						if ($opt[0]=='linked' && $opt[1]=='0') $linked=false;
 						if ($opt[0]=='catlink' && $opt[1]) $catlink=true;
-						if ($opt[0]=='align' && $opt[1]) {
-							if ($opt[1]=='center') $align='text-center';
-							if ($opt[1]=='left') $align='text-start';
-							if ($opt[1]=='right') $align='text-end';
-						}
+						if ($opt[0]=='float' && $opt[1]=='0') $floatfig=false;
+						if ($opt[0]=='align' && $opt[1]) $align=$opt[1];
+					}
+					if ($floatfig) {
+						if ($align=='left') $figclass = 'jg-image float-start';
+						if ($align=='right') $figclass = 'jg-image float-end';
+					}
+					else {
+						if ($opt[1]=='left') $figclass='joom-image text-start';
+						if ($opt[1]=='right') $figclass='joom-image text-end';
 					}
             
 					$imageurl = JoomHelper::getImg($match[1],$type);
 					// TODO: add catlink if requested
-					$output = "<figure class=\"figure joom-image $align\">.\n";
+					// NB: joom-image has width:100% which prevents floating; check other classes?
+					$output = "<figure class=\"figure $figclass\">.\n";
 					// Try this instead:  Route::_('index.php?option=com_joomgallery&view=image&id='.(int) $match[1])
 					if ($linked) $output .= '<a href="'.JoomHelper::getImg($match[1],'detail').'">';
 					$output .= '<img src="'.$imageurl.'" class="figure-img img-fluid rounded" alt="'.$image->title.'">'."\n";
