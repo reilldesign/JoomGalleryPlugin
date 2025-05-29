@@ -245,7 +245,7 @@ class JoomGalleryPlugin extends CMSPlugin implements SubscriberInterface
 					if ($max_entries != 0) $catimages = array_slice($catimages, 0, $max_entries);
 					$children = $catView->getModel()->getChildren();
 					$imgsData = [ 'id' => (int) $catitem->id, 'layout' => $category_class, 'items' => $catimages, 'num_columns' => (int) $num_columns,
-                  'caption_align' => $caption_align, 'image_class' => $image_class, 'image_type' => $lightbox_image, 'image_link' => $image_link,
+                  'caption_align' => $caption_align, 'image_class' => $image_class, 'image_type' => $image_type, 'lightbox_type' => $lightbox_image, 'image_link' => $image_link,
                   'image_title' => (bool) $show_title, 'title_link' => $title_link, 'image_desc' => (bool) $show_description, 'image_date' => (bool) $show_imgdate,
                   'image_author' => (bool) $show_imgauthor, 'image_tags' => (bool) $show_tags
                 ];
