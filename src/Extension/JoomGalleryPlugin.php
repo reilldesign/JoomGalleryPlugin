@@ -18,6 +18,8 @@ use Joomgallery\Component\Joomgallery\Administrator\Helper\JoomHelper;
 
 class JoomGalleryPlugin extends CMSPlugin implements SubscriberInterface
 {
+    protected $wa = false; 
+
     public static function getSubscribedEvents(): array
     {
         return [
@@ -95,6 +97,7 @@ class JoomGalleryPlugin extends CMSPlugin implements SubscriberInterface
 		{
     		$params = ComponentHelper::getParams('com_joomgallery');
     		$caption_align = $params->get('jg_category_view_caption_align', 'center', 'STRING');
+			$align = '';
 
 			foreach($matches as $match)
 			{
@@ -108,7 +111,7 @@ class JoomGalleryPlugin extends CMSPlugin implements SubscriberInterface
 					Factory::getApplication()->enqueueMessage($e->getMessage(),'error');
 				}
 
-				if(!is_null($image))
+				if($image)
 				{
 					$figclass = 'joom-image text-center';
 					$floatfig = true;
