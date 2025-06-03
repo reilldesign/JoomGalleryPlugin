@@ -295,10 +295,7 @@ $layout = new FileLayout('category.thumbs', null, array('component' => 'com_joom
 		//if ($context !== "com_content.article" && $context !== "com_content.featured") return;
         
 		$text = $article->text; // text of the article
-		$config = Factory::getApplication()->getConfig()->toArray();  // config params as an array
-            // (we can't do a foreach over the config params as a Registry because they're protected)
 
-		// Simple performance check to determine whether bot should process further
 		if (strpos($article->text, 'joomgallery') === false && strpos($article->text, 'joomplu') === false)
 		{
 			return;
