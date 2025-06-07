@@ -301,6 +301,10 @@ $layout = new FileLayout('category.thumbs', null, array('component' => 'com_joom
 			return;
 		}
 
+		$language = Factory::getApplication()->getLanguage();
+		$language->load('com_joomgallery', JPATH_BASE . '/components/com_joomgallery');
+		$language->load('JoomGalleryPlugin', JPATH_BASE . '/plugins/content/joomgallery');
+
 		// Check existence of JoomGallery and include the interface class
 		if(!\Joomla\CMS\Component\ComponentHelper::isEnabled('com_joomgallery'))
 		{

@@ -13,10 +13,11 @@
     <files>
         <folder plugin="joomgallery">services</folder>
         <folder>src</folder>
+        <folder>language</folder>
     </files>
     <languages>
-        <language tag="en-GB">language/en-GB/plg_content_joomgallery.ini</language>
-        <language tag="en-GB">language/en-GB/plg_content_joomgallery.sys.ini</language>
+        <language tag="en-GB">language/en-GB/JoomGalleryPlugin.ini</language>
+        <language tag="en-GB">language/en-GB/JoomGalleryPlugin.sys.ini</language>
     </languages>
     <config>
       <fields name="params">
