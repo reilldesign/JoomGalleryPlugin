@@ -182,7 +182,6 @@ class JoomGalleryPlugin extends CMSPlugin implements SubscriberInterface
 				$catView = $joomgallery->createView('Category','Site','Html');
 				$catView->setModel($catModel,true);
 				$params = $catView->get('Params');
-
 				// Subcategory params
 				$subcategory_class          = $params['configs']->get('jg_category_view_subcategory_class', 'masonry', 'STRING');
 
@@ -196,9 +195,12 @@ class JoomGalleryPlugin extends CMSPlugin implements SubscriberInterface
 				$justified_gap    = $params['configs']->get('jg_category_view_justified_gap', 5, 'INT');
 				$show_title       = $params['configs']->get('jg_category_view_images_show_title', 0, 'INT');
 				$use_pagination   = $params['configs']->get('jg_category_view_pagination', 0, 'INT');
+				$reloaded_images  = $params['configs']->get('jg_category_view_number_of_reloaded_images', 3, 'INT');
 				$image_link       = $params['configs']->get('jg_category_view_image_link', 'defaultview', 'STRING');
 				$title_link       = $params['configs']->get('jg_category_view_title_link', 'defaultview', 'STRING');
 				$lightbox_image   = $params['configs']->get('jg_category_view_lightbox_image', 'detail', 'STRING');
+				$lightbox_thumbnails = $params['configs']->get('jg_lightbox_thumbnails', 0, 'INT');
+				$lightbox_zoom       = $params['configs']->get('jg_lightbox_zoom', 0, 'INT');
 				$show_description = $params['configs']->get('jg_category_view_show_description', 0, 'INT');
 				$show_imgdate     = $params['configs']->get('jg_category_view_show_imgdate', 0, 'INT');
 				$show_imgauthor   = $params['configs']->get('jg_category_view_show_imgauthor', 0, 'INT');
@@ -234,47 +236,49 @@ class JoomGalleryPlugin extends CMSPlugin implements SubscriberInterface
 
 						$this->wa->useScript('com_joomgallery.lightgallery');
 						$this->wa->useScript('com_joomgallery.lg-thumbnail');
+						$this->wa->useScript('com_joomgallery.lg-zoom');
 						$this->wa->useStyle('com_joomgallery.lightgallery-bundle');
 					}
-	
-					// Add and initialize the grid script
-					$iniJS  = 'window.joomGrid = {';
-					$iniJS .= '  itemid: ' . $catitem->id . ',';
-					$iniJS .= '  pagination: ' . $use_pagination . ',';
-					$iniJS .= '  layout: "' . $category_class . '",';
-					$iniJS .= '  num_columns: ' . $num_columns . ',';
-					$iniJS .= '  lightbox: ' . ($lightbox ? 'true' : 'false') . ',';
-					$iniJS .= '  justified: {height: '.$justified_height.', gap: '.$justified_gap.'}';
-					$iniJS .= '};';
-
-					$this->wa->addInlineScript($iniJS, ['position' => 'before'], [], ['com_joomgallery.joomgrid']);
-					$this->wa->useScript('com_joomgallery.joomgrid');
 
 					$catimages = $catView->getModel()->getImages();
 					if ($max_entries != 0) $catimages = array_slice($catimages, 0, $max_entries);
+					$numb_images = count($catimages);
+
+					// Add and initialize the grid script
+					$iniJS  = 'window.joomGrid["1-'.$catitem->id.'"] = {';
+					$iniJS .= '  itemid: "1-' . $catitem->id . '",';
+					$iniJS .= '  pagination: ' . $use_pagination . ',';
+					$iniJS .= '  layout: "' . $category_class . '",';
+					$iniJS .= '  num_columns: ' . $num_columns . ',';
+					$iniJS .= '  numb_images: ' . $numb_images . ',';
+					$iniJS .= '  reloaded_images: ' . $reloaded_images . ',';
+					$iniJS .= '  lightbox: ' . ($lightbox ? 'true' : 'false') . ',';
+					$iniJS .= '  lightbox_params: {container: "lightgallery-1-'.$catitem->id.'", selector: ".lightgallery-item"},';
+					$iniJS .= '  thumbnails: ' . ($lightbox_thumbnails ? 'true' : 'false') . ',';
+					$iniJS .= '  zoom: ' . ($lightbox_zoom ? 'true' : 'false') . ',';
+					$iniJS .= '  justified: {height: '.$justified_height.', gap: '.$justified_gap.'}';
+					$iniJS .= '};';
+
+					$this->wa->useScript('com_joomgallery.joomgrid');
+					$this->wa->addInlineScript($iniJS, ['position' => 'after'], [], ['com_joomgallery.joomgrid']);
+
 					$children = $catView->getModel()->getChildren();
-					$imgsData = [ 'id' => (int) $catitem->id, 'layout' => $category_class, 'items' => $catimages, 'num_columns' => (int) $num_columns,
+					$imgsData = [ 'id' => '1-'.(int) $catitem->id, 'layout' => $category_class, 'items' => $catimages, 'num_columns' => (int) $num_columns,
                   'caption_align' => $caption_align, 'image_class' => $image_class, 'image_type' => $image_type, 'lightbox_type' => $lightbox_image, 'image_link' => $image_link,
                   'image_title' => (bool) $show_title, 'title_link' => $title_link, 'image_desc' => (bool) $show_description, 'image_date' => (bool) $show_imgdate,
                   'image_author' => (bool) $show_imgauthor, 'image_tags' => (bool) $show_tags
                 ];
 					$output = LayoutHelper::render('joomgallery.grids.images', $imgsData, null, array('component' => 'com_joomgallery'));
 					$output .= "<script>\n".
-						"  if(window.joomGrid.layout != 'justified') {\n".
-						"    var loadImg = function() {\n".
-						"      this.closest('.' + window.joomGrid.imgboxclass).classList.add('loaded');\n".
-						"    }\n\n".
-						"    let images = Array.from(document.getElementsByClassName(window.joomGrid.imgclass));\n".
-						"    images.forEach(image => {\n".
-						"      image.addEventListener('load', loadImg);\n".
-						"    });\n".
+						"  // Add event listener to images\n".
+						"  let loadImg = function() {\n".
+						"    this.closest('.jg-image').classList.add('loaded');\n".
 						"  }\n".
+						"  let images = Array.from(document.getElementsByClassName('jg-image-thumb'));\n".
+						"  images.forEach(image => {\n".
+						"    image.addEventListener('load', loadImg);\n".
+						"  });\n".
 						"</script>\n";
-					/*
-					$data = array('interface' => $this, 'item' => $catitem, 'images' => $catimages, 'children' => $children, 'category_class' => $category_class, 'image_class' => $image_class, 'num_columns' => $num_columns, 'caption_align' => $caption_align, 'lightbox' => $lightbox);
-$layout = new FileLayout('category.thumbs', null, array('component' => 'com_joomgallery'));
-					$output = $layout->render($data);
-					*/
 				}
 				else
 				{
